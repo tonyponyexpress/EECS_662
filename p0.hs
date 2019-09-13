@@ -1,9 +1,10 @@
-{-# LANGUAGE GADTs, FlexibleContexts #-}
-
 -- Student: Tony Nguyen
 -- KU ID: 2878004
 -- Assignment: Project 0
 -- Date: 9/13/19
+-- NOTE: Load this module and enter "main" in GHCI to run the test cases.
+
+{-# LANGUAGE GADTs, FlexibleContexts #-}
 
 -- Imports for Parsec
 import Control.Monad
@@ -122,12 +123,12 @@ evalAEMaybe ( Plus l r ) = let l' = evalAEMaybe l in
 evalAEMaybe ( Minus l r ) = let l' = evalAEMaybe l in
                             let r' = evalAEMaybe r in
                             if ( l' == Nothing ) then Nothing
-                                                else if ( r' == Nothing ) then Nothing
-                                                else if ( l' >= r' ) then
-                                                  let Just v1 = l' in
-                                                  let Just v2 = r' in
-                                                  Just ( v1 + v2 )
-                                                else Nothing
+                                                 else if ( r' == Nothing ) then Nothing
+                                                 else if ( l' >= r' ) then
+                                                   let Just v1 = l' in
+                                                   let Just v2 = r' in
+                                                   Just ( v1 - v2 )
+                                                 else Nothing
 evalAEMaybe ( Mult l r ) = let l' = evalAEMaybe l in
                            let r' = evalAEMaybe r in
                            if ( l' == Nothing ) then Nothing
@@ -153,7 +154,99 @@ evalAEMaybe ( If0 x y z ) = let x' = evalAEMaybe x in
                                                                           else z'
 
 evalM :: AE -> Maybe Int
-evalM _ = Nothing
+evalM ( Num n ) = if ( n < 0 ) then Nothing
+                               else Just n
+evalM ( Plus l r ) = do { l' <- ( evalM l );
+                          r' <- ( evalM r );
+                          Just ( l' + r' ) }
+evalM ( Minus l r ) = do { l' <- ( evalM l );
+                           r' <- ( evalM r );
+                           if ( l' >= r' ) then Just ( l' - r' )
+                                           else Nothing }
+evalM ( Mult l r ) = do { l' <- ( evalM l );
+                          r' <- ( evalM r );
+                          Just ( l' * r' ) }
+evalM ( Div l r ) = do { l' <- ( evalM l );
+                         r' <- ( evalM r );
+                         if ( r' <= 0 ) then Nothing
+                                        else Just ( div ( l' ) ( r' ) ) }
+evalM ( If0 x y z ) = do { x' <- ( evalM x );
+                           y' <- ( evalM y );
+                           z' <- ( evalM z );
+                           if ( x' == 0 ) then Just y'
+                                          else Just z' }
 
 interpAE :: String -> Maybe Int
-interpAE _ = Nothing
+interpAE s = evalM ( parseAE s )
+
+--Test cases
+evalAEMaybeTest = do
+                  print ( evalAEMaybe ( Num 10 ) )
+                  print ( evalAEMaybe ( Num ( -1 ) ) )
+                  print ( evalAEMaybe ( Plus ( Num 10 ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Plus ( Num ( -10 ) ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Minus ( Num 10 ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Minus ( Num 5 ) ( Num 10 ) ) )
+                  print ( evalAEMaybe ( Minus ( Num ( -10 ) ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Mult ( Num 10 ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Mult ( Num ( -10 ) ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Div ( Num 10 ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( Div ( Num 10 ) ( Num 0 ) ) )
+                  print ( evalAEMaybe ( If0 ( Num 0 ) ( Num 10 ) ( Num 5 ) ) )
+                  print ( evalAEMaybe ( If0 ( Num ( -1 ) ) ( Num 10 ) ( Num 5 ) ) )
+
+evalMTest = do
+            print ( evalM ( Num 10 ) )
+            print ( evalM ( Num ( -1 ) ) )
+            print ( evalM ( Plus ( Num 10 ) ( Num 5 ) ) )
+            print ( evalM ( Plus ( Num ( -10 ) ) ( Num 5 ) ) )
+            print ( evalM ( Minus ( Num 10 ) ( Num 5 ) ) )
+            print ( evalM ( Minus ( Num 5 ) ( Num 10 ) ) )
+            print ( evalM ( Minus ( Num ( -10 ) ) ( Num 5 ) ) )
+            print ( evalM ( Mult ( Num 10 ) ( Num 5 ) ) )
+            print ( evalM ( Mult ( Num ( -10 ) ) ( Num 5 ) ) )
+            print ( evalM ( Div ( Num 10 ) ( Num 5 ) ) )
+            print ( evalM ( Div ( Num 10 ) ( Num 0 ) ) )
+            print ( evalM ( If0 ( Num 0 ) ( Num 10 ) ( Num 5 ) ) )
+            print ( evalM ( If0 ( Num ( -1 ) ) ( Num 10 ) ( Num 5 ) ) )
+
+interpAETest = do
+               print ( interpAE "10" )
+               print ( interpAE "-1" )
+               print ( interpAE "10+5" )
+               print ( interpAE "-10+5" )
+               print ( interpAE "10-5" )
+               print ( interpAE "5-10" )
+               print ( interpAE "-10-5" )
+               print ( interpAE "10*5" )
+               print ( interpAE "-10*5" )
+               print ( interpAE "10/5" )
+               print ( interpAE "10/0" )
+
+evalAETest = do
+             print ( evalAE ( Num 10 ) )
+             print ( evalAE ( Plus ( Num 10) ( Num 5 ) ) )
+             print ( evalAE ( Minus ( Num 10 ) ( Num 5 ) ) )
+             print ( evalAE ( Mult ( Num 10 ) ( Num 5 ) ) )
+             print ( evalAE ( Div ( Num 10 ) ( Num 5 ) ) )
+             print ( evalAE ( If0 ( Num 0 ) ( Num 10 ) ( Num 5 ) ) )
+
+testCases = do
+            print ( "Begin tests!" )
+            print ( "evalAEMaybe Testing: " )
+            evalAEMaybeTest
+            print ( "evalAEMaybe Testing Complete." )
+            print ( "evalM Testing: " )
+            evalMTest
+            print ( "evalM Testing Complete." )
+            print ( "interpAE Testing: " )
+            interpAETest
+            print ( "interpAE Testing Complete." )
+            print ( "evalAE Testing: " )
+            evalAETest
+            print ( "evalAE Testing Complete." )
+            print ( "All tests are finished!" )
+
+main :: IO()
+main = do
+       testCases
