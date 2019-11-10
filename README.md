@@ -1,3 +1,3 @@
 EECS_662
 
-Implementing interpreters for Haskell
+Implementing interpreters in Haskell
