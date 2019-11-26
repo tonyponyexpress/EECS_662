@@ -99,7 +99,20 @@ data FBAEC where
   deriving ( Show, Eq )
 
 elabFBAEC :: FBAEC -> FAE
-elabFBAEC _ = ( Num ( -1 ) )
+elabFBAEC ( NumE n ) = Num n
+elabFBAEC ( PlusE l r ) = Plus ( elabFBAEC l ) ( elabFBAEC r )
+elabFBAEC ( MinusE l r ) = Minus ( elabFBAEC l ) ( elabFBAEC r )
+elabFBAEC ( TrueE ) = Lambda "t" ( Lambda "f" ( Id "t" ) )
+elabFBAEC ( FalseE ) = Lambda "t" ( Lambda "f"  ( Id "f" ) )
+elabFBAEC ( AndE l r ) = ( App ( App ( Lambda "m" ( Lambda "n" ( App ( App ( Id "m" ) ( Id "n" ) ) ( elabFBAEC FalseE ) ) ) ) ( elabFBAEC l ) ) ( elabFBAEC r ) )
+elabFBAEC ( OrE l r ) = ( App ( App ( Lambda "m" ( Lambda "n" ( App ( App ( Id "m" ) ( elabFBAEC TrueE ) ) ( Id "n" ) ) ) ) ( elabFBAEC l ) ) ( elabFBAEC r ) )
+elabFBAEC ( NotE a ) = ( Lambda "m" ( Lambda "n" ( App ( App ( elabFBAEC a ) ( Id "n" ) ) ( Id "m" ) ) ) )
+elabFBAEC ( IfE a b c ) = App ( App ( App ( Lambda "x" ( Lambda "true" ( Lambda "false" ( App ( App ( Id "x" ) ( Id "true" ) ) ( Id "false" ) ) ) ) ) ( elabFBAEC a ) ) ( elabFBAEC b ) ) ( elabFBAEC c )
+elabFBAEC ( LambdaE i b ) = Lambda i ( elabFBAEC b )
+elabFBAEC ( AppE f a ) = App ( elabFBAEC f ) ( elabFBAEC a )
+elabFBAEC ( BindE i v b ) = ( App ( Lambda i ( elabFBAEC b ) ) ( elabFBAEC v ) )
+elabFBAEC ( IdE i ) = Id i
 
-evalFBAEC :: Env' -> FBAEC -> Maybe FAEValue
-evalFBAEC _ _ = Nothing
+evalFBAEC :: Env' -> FBAEC -> ( Maybe FAEValue )
+evalFBAEC e a = evalStatFAE e ( elabFBAEC a )
+
